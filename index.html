@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Best IPTV Pro — Admin</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
@@ -47,7 +47,6 @@
 
 <!-- মেইন প্যানেল -->
 <div id="panel" class="max-w-6xl mx-auto space-y-3 hidden">
-
   <div class="flex justify-between items-center border-b border-slate-800 pb-3 flex-wrap gap-2">
     <div>
       <h1 class="text-xl font-bold text-emerald-400">📺 Best IPTV Pro</h1>
@@ -55,6 +54,7 @@
     </div>
     <div class="flex gap-2 flex-wrap">
       <span id="badge" class="text-xs px-3 py-1 rounded-full bg-slate-800">🔑 চেক করছি...</span>
+      <a href="index.html" class="bg-slate-800 px-3 py-2 rounded-xl text-purple-400 text-xs">🏠 Home</a>
       <button onclick="test()" class="bg-slate-800 px-3 py-2 rounded-xl text-yellow-400 text-xs">🔑 Test</button>
       <button onclick="changeToken()" class="bg-slate-800 px-3 py-2 rounded-xl text-blue-400 text-xs">🔁 Token</button>
       <button onclick="toggleSettings()" class="bg-slate-800 px-3 py-2 rounded-xl text-emerald-400 text-xs">⚙️ Settings</button>
@@ -128,7 +128,6 @@
 <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-xs hidden z-50"></div>
 
 <script>
-/* ============ কনফিগ ============ */
 const OWNER = "tv-bd1";
 const REPO  = "bestiptvpro";
 const LISTS = ["All.m3u", "Sports.m3u", "FMRadio.m3u"];
@@ -142,7 +141,6 @@ let chans = [];
 let listSha = "", setSha = "";
 let settings = { notice:"", telegram:"", version:"", updateLink:"", maintenance:"OFF", adCodeBanner:"", adCodePopunder:"" };
 
-/* ============ হেল্পার ============ */
 const enc = s => { try { return btoa(unescape(encodeURIComponent(s))); } catch(e) { return btoa(s); } };
 const dec = b => { try { return decodeURIComponent(escape(atob((b||"").replace(/\s/g,'')))); } catch(e) { return atob((b||"").replace(/\s/g,'')); } };
 const esc = s => !s ? '' : String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
@@ -156,7 +154,6 @@ function toast(m, c) {
 function setStatus(m, c) { const e = document.getElementById('status'); e.innerText = m; e.className = `text-xs ${c||'text-slate-500'}`; }
 function setBadge(ok, m) { const e = document.getElementById('badge'); e.innerText = m; e.className = `text-xs px-3 py-1 rounded-full ${ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`; }
 
-/* ============ M3U ============ */
 function parseM3U(txt) {
   const out = []; let cur = null;
   for (const l of (txt||"").split(/\r?\n/)) {
@@ -184,19 +181,14 @@ function buildM3U(list) {
   return o;
 }
 
-/* ============ GitHub API ============ */
 async function ghGet(path) {
   if (!TOKEN) throw new Error("টোকেন সেট নেই");
   const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}?ref=${BRANCH}&t=${Date.now()}`;
   const r = await fetch(url, {
-    headers: { 
-      'Authorization': `token ${TOKEN}`, 
-      'Accept': 'application/vnd.github.v3+json', 
-      'Cache-Control': 'no-cache' 
-    }
+    headers: { 'Authorization': `token ${TOKEN}`, 'Accept': 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache' }
   });
   if (r.status === 404) return null;
-  if (r.status === 401) throw new Error("401: টোকেন ভুল বা এক্সপায়ার্ড");
+  if (r.status === 401) throw new Error("401: টোকেন ভুল");
   if (r.status === 403) throw new Error("403: Permission নেই");
   if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(r.status + ": " + (e.message||'GitHub error')); }
   return r.json();
@@ -209,26 +201,21 @@ async function ghPut(path, content, sha, isM3U) {
   if (sha) body.sha = sha;
   const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
     method: 'PUT',
-    headers: { 
-      'Authorization': `token ${TOKEN}`, 
-      'Content-Type': 'application/json', 
-      'Accept': 'application/vnd.github.v3+json' 
-    },
+    headers: { 'Authorization': `token ${TOKEN}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
     body: JSON.stringify(body)
   });
   if (!r.ok) {
     const e = await r.json().catch(()=>({}));
     if (r.status === 401) throw new Error("401: Bad credentials");
     if (r.status === 403) throw new Error("403: Permission denied");
-    if (r.status === 409) throw new Error("409: Conflict — Refresh করুন");
-    if (r.status === 422) throw new Error("422: SHA mismatch — Refresh করুন");
+    if (r.status === 409) throw new Error("409: Conflict");
+    if (r.status === 422) throw new Error("422: SHA mismatch");
     throw new Error(r.status + ": " + (e.message||'GitHub error'));
   }
   const j = await r.json();
   return j.content.sha;
 }
 
-/* ============ লগইন ============ */
 document.getElementById('pw').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
 document.getElementById('tok').addEventListener('keypress', e => { if (e.key === 'Enter') saveToken(); });
 
@@ -240,8 +227,6 @@ function doLogin() {
   }
   document.getElementById('loginBox').classList.add('hidden');
   document.getElementById('panel').classList.remove('hidden');
-  
-  // টোকেন localStorage থেকে লোড
   const saved = localStorage.getItem(TKEY);
   if (saved && saved.length > 30) {
     TOKEN = saved;
@@ -253,7 +238,6 @@ function doLogin() {
   }
 }
 
-/* ============ টোকেন ============ */
 async function saveToken() {
   const v = document.getElementById('tok').value.trim();
   const err = document.getElementById('tokErr'), ok = document.getElementById('tokOk'), btn = document.getElementById('tokBtn');
@@ -288,13 +272,12 @@ async function saveToken() {
 }
 
 function changeToken() {
-  if (confirm('টোকেন পরিবর্তন করবেন? পুরনো মুছে যাবে।')) {
+  if (confirm('টোকেন পরিবর্তন করবেন?')) {
     localStorage.removeItem(TKEY);
     location.reload();
   }
 }
 
-/* ============ টেস্ট ============ */
 async function test() {
   document.getElementById('debug').classList.remove('hidden');
   document.getElementById('dbg').innerHTML = '<div class="text-yellow-400">⏳ টেস্ট...</div>';
@@ -320,7 +303,6 @@ async function test() {
   document.getElementById('dbg').innerHTML = h;
 }
 
-/* ============ চ্যানেল ============ */
 async function start() {
   setStatus('লোড হচ্ছে...', 'text-yellow-400');
   await loadList();
@@ -333,11 +315,7 @@ async function loadList() {
   chans = [];
   try {
     const f = await ghGet(curList);
-    if (!f) { 
-      el.innerHTML = `<p class="text-yellow-400 col-span-full text-center py-8">⚠️ ${curList} পাওয়া যায়নি</p>`; 
-      setStatus('❌ ' + curList, 'text-red-400'); 
-      return; 
-    }
+    if (!f) { el.innerHTML = `<p class="text-yellow-400 col-span-full text-center py-8">⚠️ ${curList} পাওয়া যায়নি</p>`; setStatus('❌ ' + curList, 'text-red-400'); return; }
     listSha = f.sha;
     chans = parseM3U(dec(f.content));
     setStatus(`✅ ${curList} — ${chans.length} টি চ্যানেল`, 'text-emerald-400');
@@ -359,10 +337,7 @@ function render() {
   const filtered = chans.filter(c => (c.name||'').toLowerCase().includes(q));
   document.getElementById('count').innerText = 'Total: ' + filtered.length;
   const el = document.getElementById('list');
-  if (!filtered.length) { 
-    el.innerHTML = '<p class="text-slate-500 col-span-full text-center py-8">📭 চ্যানেল নেই</p>'; 
-    return; 
-  }
+  if (!filtered.length) { el.innerHTML = '<p class="text-slate-500 col-span-full text-center py-8">📭 চ্যানেল নেই</p>'; return; }
   el.innerHTML = filtered.map(c => {
     const i = chans.indexOf(c);
     return `<div class="bg-slate-900 rounded-xl border border-slate-800 p-2.5 text-center">
@@ -381,14 +356,11 @@ function setList(n) {
   curList = n;
   for (const p of LISTS) {
     const b = document.getElementById('t-' + p.replace('.m3u',''));
-    if (b) b.className = p === n 
-      ? 'flex-1 py-2 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950' 
-      : 'flex-1 py-2 rounded-lg text-xs font-bold bg-slate-800';
+    if (b) b.className = p === n ? 'flex-1 py-2 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950' : 'flex-1 py-2 rounded-lg text-xs font-bold bg-slate-800';
   }
   loadList();
 }
 
-/* ============ সেভ/এডিট/ডিলিট ============ */
 async function saveList(list) {
   try {
     const latest = await ghGet(curList);
@@ -398,16 +370,8 @@ async function saveList(list) {
   } catch(e) { toast('❌ ' + e.message, 'text-red-400'); return false; }
 }
 
-function openAdd() { 
-  document.getElementById('addModal').classList.remove('hidden'); 
-  document.getElementById('addModal').classList.add('flex'); 
-}
-function closeAdd() { 
-  document.getElementById('addModal').classList.add('hidden'); 
-  document.getElementById('addModal').classList.remove('flex'); 
-  document.getElementById('chForm').reset(); 
-  document.getElementById('editIdx').value = ''; 
-}
+function openAdd() { document.getElementById('addModal').classList.remove('hidden'); document.getElementById('addModal').classList.add('flex'); }
+function closeAdd() { document.getElementById('addModal').classList.add('hidden'); document.getElementById('addModal').classList.remove('flex'); document.getElementById('chForm').reset(); document.getElementById('editIdx').value = ''; }
 function edit(i) {
   const c = chans[i];
   document.getElementById('mTitle').innerText = '✏️ Edit Channel';
@@ -448,12 +412,10 @@ document.getElementById('chForm').addEventListener('submit', async e => {
   }
 });
 
-/* ============ সেটিংস ============ */
 function toggleSettings() {
   document.getElementById('settingsBox').classList.toggle('hidden');
   document.getElementById('mainArea').classList.toggle('hidden');
 }
-
 async function loadSettings() {
   try {
     const f = await ghGet('settings.json');
@@ -467,7 +429,6 @@ async function loadSettings() {
   document.getElementById('adBanner').value = settings.adCodeBanner || '';
   document.getElementById('adPop').value = settings.adCodePopunder || '';
 }
-
 async function saveSettings() {
   const btn = document.getElementById('saveSetBtn');
   btn.innerText = '⏳...'; btn.disabled = true;
@@ -487,15 +448,6 @@ async function saveSettings() {
   } catch(e) { toast('❌ ' + e.message, 'text-red-400'); }
   btn.innerText = '💾 Save'; btn.disabled = false;
 }
-
-/* ============ স্ক্রিপ্ট লোড হলে ============ */
-window.addEventListener('load', () => {
-  // Token অটো-লোড
-  const saved = localStorage.getItem(TKEY);
-  if (saved && saved.length > 30) {
-    TOKEN = saved;
-  }
-});
 </script>
 </body>
-  </html>
+</html>
